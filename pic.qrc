@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file>pic/ba.png</file>
+        <file>pic/bb.png</file>
+        <file>pic/bc.png</file>
+        <file>pic/bk.png</file>
+        <file>pic/bn.png</file>
+        <file>pic/board.png</file>
+        <file>pic/bp.png</file>
+        <file>pic/br.png</file>
+        <file>pic/mask.png</file>
+        <file>pic/off.png</file>
+        <file>pic/on.png</file>
+        <file>pic/ra.png</file>
+        <file>pic/rb.png</file>
+        <file>pic/rc.png</file>
+        <file>pic/rk.png</file>
+        <file>pic/rn.png</file>
+        <file>pic/rp.png</file>
+        <file>pic/rr.png</file>
+        <file>pic/xy1.png</file>
+        <file>pic/xy2.png</file>
+    </qresource>
+</RCC>
