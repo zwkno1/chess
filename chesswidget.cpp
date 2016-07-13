@@ -190,4 +190,10 @@ void ChessWidget::undo()
     repaint();
 }
 
+void ChessWidget::search()
+{
+    chess_->search(5);
+    chess_->move(chess_->getBestMove());
+    repaint();
+}
 

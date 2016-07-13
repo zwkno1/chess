@@ -23,6 +23,7 @@ signals:
 public slots:
     void restart();
     void undo();
+    void search();
 private:
     QPixmap & getPixmap(char type);
     void coordToBoard(int x, int y, uint8_t & idx);

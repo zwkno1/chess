@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>26</height>
+     <height>29</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -35,6 +35,7 @@
     </property>
     <addaction name="action_restart"/>
     <addaction name="action_undo"/>
+    <addaction name="action_search"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -47,6 +48,11 @@
   <action name="action_undo">
    <property name="text">
     <string>悔棋</string>
+   </property>
+  </action>
+  <action name="action_search">
+   <property name="text">
+    <string>提示</string>
    </property>
   </action>
  </widget>
@@ -93,6 +99,22 @@
     <hint type="destinationlabel">
      <x>399</x>
      <y>300</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_search</sender>
+   <signal>triggered()</signal>
+   <receiver>chessWidget</receiver>
+   <slot>search()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>301</y>
     </hint>
    </hints>
   </connection>

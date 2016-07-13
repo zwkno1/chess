@@ -1,8 +1,10 @@
 #ifndef CHESS_H
 #define CHESS_H
 
-#include <stdint.h>
 #include <stack>
+#include <vector>
+#include <stdint.h>
+#include <stddef.h>
 
 struct Move
 {
@@ -38,6 +40,10 @@ public:
     //悔棋
     bool undo();
 
+    void search(int depth);
+
+    Move getBestMove() const { return best_move_; }
+
     //检查对局是否结束
     // 0 红胜, 1 黑胜, 2 平局, 3 未结束
     int getChessResult();
@@ -61,25 +67,36 @@ private:
     //增加棋子
     void addPiece(uint8_t pos, uint8_t  p);
 
-
     //保存走法
-    void saveMove(uint8_t from, uint8_t to);
+    void saveMove(std::vector<Move> & moves, uint8_t from, uint8_t to);
 
     //改变走棋方
     void changeSide();
 
     //生成所有走法
-    void genAllMove();
+    void genAllMove(std::vector<Move> & moves);
+
+    int eval();
+
+    int maxSearch(int depth);
+
+    int minSearch(int depth);
+
+    void makeMove(Move mv);
+
+    void unmakeMove();
 
     uint8_t board_[256];	    // 棋盘数组
     uint8_t piece_[48];         // 棋子数组
 
     uint8_t side_;              // 轮到哪方走，0表示红方，1表示黑方
 
-    Move moves_[256];           // 当前的走法
-    size_t moves_size_;         // 当前走法数目
+    std::vector<Move> moves_;   // 当前的走法
 
     std::stack<Move> move_stack_;
+
+    Move best_move_;
+    int max_depth_;
 };
 
 

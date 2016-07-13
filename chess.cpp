@@ -80,6 +80,7 @@ unsigned char legal_position[2][256] ={
 
 unsigned char position_mask[7] = {2, 4, 16, 1, 1, 1, 8};
 
+
 char getPieceTypeFromChar(char ch)
 {
     switch(ch)
@@ -153,6 +154,37 @@ char pieceToFenChar(uint8_t ch)
     }
 }
 
+int eval_piece(int idx)
+{
+    static const int piece_value[8]={1000,20,20,40,90,45,10,0}; //棋子价值表
+    if(idx<16 && idx>=48)
+        return 7;
+
+    if(idx >=32)
+        idx = idx-16;
+
+    switch(idx)
+    {
+    case 16:	return piece_value[0];
+    case 17:
+    case 18:	return piece_value[1];
+    case 19:
+    case 20:	return piece_value[2];
+    case 21:
+    case 22:	return piece_value[3];
+    case 23:
+    case 24:	return piece_value[4];
+    case 25:
+    case 26:	return piece_value[5];
+    case 27:
+    case 28:
+    case 29:
+    case 30:
+    case 31:	return piece_value[6];
+    default:	return piece_value[7];
+    }
+}
+
 } //namespace
 
 Chess::Chess()
@@ -163,7 +195,7 @@ Chess::Chess()
 void Chess::init()
 {
     loadFromFen("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
-    genAllMove();
+    genAllMove(moves_);
 }
 
 void Chess::clearBoard()
@@ -171,7 +203,7 @@ void Chess::clearBoard()
     memset(board_, 0, sizeof(board_));
     memset(piece_, 0, sizeof(piece_));
     side_ = 0;
-    moves_size_ = 0;
+    moves_.clear();
     std::stack<Move> empty_stack;
     move_stack_.swap(empty_stack);
 }
@@ -452,7 +484,7 @@ bool Chess::check()
     return false;
 }
 
-void Chess::saveMove(uint8_t from, uint8_t to)
+void Chess::saveMove(std::vector<Move> & moves, uint8_t from, uint8_t to)
 {
     unsigned char p;
 
@@ -472,9 +504,7 @@ void Chess::saveMove(uint8_t from, uint8_t to)
 
     if(!r)
     {
-        moves_[moves_size_].from = from;
-        moves_[moves_size_].to = to;
-        ++moves_size_;
+        moves.push_back(Move{from, to, 0});
     }
 }
 
@@ -533,21 +563,9 @@ bool Chess::move(Move mv)
 {
     if(!isLegalMove(mv))
         return false;
-    unsigned char p;
 
-    p = board_[mv.to];
-    piece_[board_[mv.from]] = mv.to;
-    if(p)
-        piece_[p]=0;
-    board_[mv.to] = board_[mv.from];
-    board_[mv.from] = 0;
-
-    changeSide();
-    genAllMove();
-
-    mv.capture = p;
-    move_stack_.push(mv);
-
+    makeMove(mv);
+    genAllMove(moves_);
     return true;
 }
 
@@ -555,25 +573,16 @@ bool Chess::undo()
 {
     if(move_stack_.empty())
         return false;
-    Move mv = move_stack_.top();
-    move_stack_.pop();
 
-    board_[mv.from] = board_[mv.to];
-    board_[mv.to] = mv.capture;
-
-    piece_[board_[mv.from]] = mv.from;
-    if(mv.capture)
-        piece_[board_[mv.to]] = mv.to;
-    changeSide();
-    genAllMove();
-
+    unmakeMove();
+    genAllMove(moves_);
     return true;
 }
 
 int Chess::getChessResult()
 {
     int s = (side_+1)*16;
-    if(!piece_[s] || moves_size_ == 0)
+    if(!piece_[s] || moves_.empty())
     {
         return 1 - side_;
     }
@@ -583,9 +592,10 @@ int Chess::getChessResult()
     }
 }
 
-void Chess::genAllMove()
+void Chess::genAllMove(std::vector<Move> & moves)
 {
-    moves_size_ = 0;
+    moves.clear();
+    moves.reserve(128);
 
     short i,j,k;
     unsigned char p;	//p:棋子位置
@@ -605,7 +615,7 @@ void Chess::genAllMove()
         if(legal_position[side_][n] & position_mask[0])	//将对应下标为0
         {
             if( !(board_[n] & s))	//目标位置上没有本方棋子
-                saveMove(p, n);
+                saveMove(moves, p, n);
         }
     }
 
@@ -621,7 +631,7 @@ void Chess::genAllMove()
             if(legal_position[side_][n] & position_mask[1])	//士将对应下标为1
             {
                 if( !(board_[n] & s))	//目标位置上没有本方棋子
-                    saveMove(p, n);
+                    saveMove(moves, p, n);
             }
         }
     }
@@ -641,7 +651,7 @@ void Chess::genAllMove()
                 if(!board_[m])	//象眼位置无棋子占据
                 {
                     if( !(board_[n] & s))	//目标位置上没有本方棋子
-                        saveMove(p, n);
+                        saveMove(moves, p, n);
                 }
             }
         }
@@ -662,7 +672,7 @@ void Chess::genAllMove()
                 if(!board_[m])	//马腿位置无棋子占据
                 {
                     if( !(board_[n] & s))	//目标位置上没有本方棋子
-                        saveMove(p, n);
+                        saveMove(moves, p, n);
                 }
             }
         }
@@ -683,13 +693,13 @@ void Chess::genAllMove()
                     break;//不合理的位置
                 if(! board_[n] )	//目标位置上无子
                 {
-                    saveMove(p, n);
+                    saveMove(moves, p, n);
                 }
                 else if ( board_[n] & s)	//目标位置上有本方棋子
                     break;
                 else	//目标位置上有对方棋子
                 {
-                    saveMove(p, n);
+                    saveMove(moves, p, n);
                     break;
                 }
             }
@@ -713,7 +723,7 @@ void Chess::genAllMove()
                 if(! board_[n] )	//目标位置上无子
                 {
                     if(!overFlag)	//未翻山
-                        saveMove(p, n);
+                        saveMove(moves, p, n);
                     //已翻山则不作处理，自动考察向下一个位置
                 }
                 else//目标位置上有子
@@ -723,7 +733,7 @@ void Chess::genAllMove()
                     else	//已翻山
                     {
                         if(! (board_[n] & s))//对方棋子
-                            saveMove(p, n);
+                            saveMove(moves, p, n);
                         break;	//不论吃不吃子，都退出此方向搜索
                     }
                 }
@@ -743,15 +753,123 @@ void Chess::genAllMove()
             if(legal_position[side_][n] & position_mask[6])	//兵士将对应下标为6
             {
                 if( !(board_[n] & s))	//目标位置上没有本方棋子
-                    saveMove(p, n);
+                    saveMove(moves, p, n);
             }
         }
     }
 }
 
+int Chess::eval()
+{
+    int red_val = 0, black_val = 0;
+    for(int i = 16; i < 32; ++i)
+    {
+        if(piece_[i] > 0)
+            red_val += eval_piece(i);
+    }
+
+    for(int i = 32; i < 48; ++i)
+    {
+        if(piece_[i] > 0)
+            black_val += eval_piece(i);
+    }
+
+    return red_val - black_val;
+}
+
+int Chess::maxSearch(int depth)
+{
+   if(depth == 0)
+       return eval();
+   int best = -99999;
+   int value;
+   std::vector<Move> moves;
+   genAllMove(moves);
+
+   for(auto mv : moves)
+   {
+       makeMove(mv);
+       value = minSearch(depth - 1);
+       unmakeMove();
+       if(value > best)
+       {
+           best = value;
+           if(depth == max_depth_)
+               best_move_ = mv;
+       }
+   }
+
+   return best;
+}
+
+int Chess::minSearch(int depth)
+{
+    if(depth == 0)
+        return eval();
+    int best = 99999;
+    int value;
+    std::vector<Move> moves;
+    genAllMove(moves);
+
+    for(auto mv : moves)
+    {
+        makeMove(mv);
+        value = maxSearch(depth - 1);
+        unmakeMove();
+        if(value < best)
+        {
+            best = value;
+            if(depth == max_depth_)
+                best_move_ = mv;
+        }
+    }
+
+    return best;
+}
+
+void Chess::search(int depth)
+{
+    max_depth_ = depth;
+    if(side_ == 0)
+        maxSearch(depth);
+    else
+        search(depth);
+}
+
+void Chess::makeMove(Move mv)
+{
+    unsigned char p;
+
+    p = board_[mv.to];
+    piece_[board_[mv.from]] = mv.to;
+    if(p)
+        piece_[p]=0;
+    board_[mv.to] = board_[mv.from];
+    board_[mv.from] = 0;
+
+    changeSide();
+
+    mv.capture = p;
+    move_stack_.push(mv);
+}
+
+void Chess::unmakeMove()
+{
+    Move mv = move_stack_.top();
+    move_stack_.pop();
+
+    board_[mv.from] = board_[mv.to];
+    board_[mv.to] = mv.capture;
+
+    piece_[board_[mv.from]] = mv.from;
+    if(mv.capture)
+        piece_[board_[mv.to]] = mv.to;
+    changeSide();
+}
+
 bool Chess::isLegalMove(Move mv)
 {
-    for(size_t i=0; i < moves_size_; ++i)
+    for(size_t i=0; i < moves_.size(); ++i)
     {
         if(mv.from == moves_[i].from && mv.to == moves_[i].to)
             return true;
@@ -788,11 +906,11 @@ void Chess::outputPiece()
 void Chess::outputAllMove()
 {
     printf("output move start\n");
-    for(size_t i = 0; i < moves_size_; ++i)
+    for(size_t i = 0; i < moves_.size(); ++i)
     {
         printf("(%3d,%3d)\n", moves_[i].from, moves_[i].to);
     }
-    printf("output move end,total %d\n", (int)moves_size_);
+    printf("output move end,total %d\n", (int)moves_.size());
 }
 
 
